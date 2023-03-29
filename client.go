@@ -177,6 +177,8 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 		u.Scheme = "http"
 	case "wss":
 		u.Scheme = "https"
+	case "unix":
+		u.Scheme = "unix"
 	default:
 		return nil, nil, errMalformedURL
 	}
@@ -269,6 +271,8 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 		} else if d.NetDial != nil {
 			netDial = d.NetDial
 		}
+	case "unix":
+		// well use net.Dial, see line 328
 	default:
 		return nil, nil, errMalformedURL
 	}
@@ -318,7 +322,13 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 		trace.GetConn(hostPort)
 	}
 
-	netConn, err := netDial("tcp", hostPort)
+	var netConn net.Conn
+
+	if u.Scheme == "unix" {
+		netConn, err = net.Dial("unix", u.Path)
+	} else {
+		netConn, err = netDial("tcp", hostPort)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
